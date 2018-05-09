@@ -3,12 +3,14 @@
 #include <stdio.h> 
 #include <stdlib.h>
 
+// ./a.out grep -v ˆ# /etc/passwd | cut -f7 -d: | uniq |  wc -l
+
 int main(int argc, char* argv[]) {
 	int fd[2];
 	int i;
 	// Retira os comandos
 	char cmd[100] = "";
-	for (int j = 1; j < argc; ) {
+	/*for (int j = 1; j < argc; ) {
 		if (j == argc -1) {
 			strcat(cmd, argv[j]);	
 			j++;
@@ -34,8 +36,14 @@ int main(int argc, char* argv[]) {
 				strcat(cmd, " | ");
 				j++;
 			}
+	}*/
+
+	for (int j = 1; j < argc; j++) {
+		strcat(cmd, " ");
+		strcat(cmd, argv[j]);
+		strcat(cmd, " ");
 	}
-	//printf("%s\n",cmd );
+	printf("%s\n",cmd );
 	// contar qts comandos ha
 	int c = 0;
 	for (int t = 0; t < strlen(cmd); t++) {
@@ -56,7 +64,7 @@ int main(int argc, char* argv[]) {
 	for(i = 0; i < c-1 ; i++) {
 		
 		pipe(fd); // cria um pipe com o par fd
-		char* ar[3];
+		char* ar[5];
 		int z = 0;
 		pch = strtok (result[i]," ");
 		while (pch != NULL){
