@@ -10,6 +10,8 @@
 #include <errno.h>
 #include <signal.h>
 
+// awk -v data="$(<a.txt)" '/>>>/ {f=1} /<<</ && f {print data; f=0}1' teste3.txt > file.txt
+
 
 /*
 
@@ -22,87 +24,100 @@ EXEMPLO: execvp("ls", ["ls", "-la", (char*) NULL]);
 
 */
 
+int my_system(char* cmd) {
+  int c = 0,i;
+  int fd[2];
+      for (int t = 0; t < strlen(cmd); t++) {
+        if(cmd[t] == '|') c++;
+      }
+      c++;
+      
+      char* pch;
+      char* result[c];
+      int j = 0;
+      pch = strtok (cmd,"|");
+      while (pch != NULL){
+        result[j] = strdup(pch);
+        j++;
+        pch = strtok (NULL, "|");
+      }
+  
+      for(i = 0; i < c-1 ; i++) {
+    
+        pipe(fd); // cria um pipe com o par fd
+        char* ar[5];
+        int z = 0;
+        pch = strtok (result[i]," ");
+        while (pch != NULL){
+          ar[z] = strdup(pch);
+          z++; 
+          pch = strtok (NULL, " ");
+        }
+        
+        while(z < 3) {
+          ar[z] = (char*) 0;
+          z++;
+        }
+    
+        if(!fork()) { // Se for um filho
+          close(fd[0]); // fecha o file descriptor 0
+          dup2(fd[1],1); // direciona o conteúdo de fd[1] para o stdoutput
+          close(fd[1]); // fecha o 1
+          execvp(ar[0], ar); // executa o comando em argv[i]
+          _exit(1); // sai
+        }
+        dup2(fd[0],0); // direciona o conteúdo de fd[0] para o stdinput
+        close(fd[0]); // fecha 0
+        close(fd[1]); // fecha 1
+    }
+    
+    char* ar[3];
+    ar[0] = (char*) 0;
+    ar[1] = (char*) 0;
+    ar[2] = (char*) 0;
+    pch = strtok (result[i]," ");
+    j = 0;
+    while (pch != NULL){
+      ar[j] = strdup(pch);
+      j++;
+      pch = strtok (NULL, " ");
+    }
 
+    // teste
+    int out = open("cout.log", O_RDWR | O_CREAT | O_APPEND, 0600);
+    if (-1 == out) { perror("opening cout.log"); return 255; }
+
+    int err = open("cerr.log", O_RDWR|O_CREAT|O_APPEND, 0600);
+    if (-1 == err) { perror("opening cerr.log"); return 255; }
+
+    int save_out = dup(fileno(stdout));
+    int save_err = dup(fileno(stderr));
+
+    if (-1 == dup2(out, fileno(stdout))) { perror("cannot redirect stdout"); return 255; }
+    if (-1 == dup2(err, fileno(stderr))) { perror("cannot redirect stderr"); return 255; }
+
+    // teste
+    pid_t pid;
+    if ((pid = fork()) == 0) {
+      execvp(ar[0], ar); // pai executa o último
+      _exit(1);
+    }
+    waitpid(pid, NULL, 0);
+
+    fflush(stdout); close(out);
+    fflush(stderr); close(err);
+
+    dup2(save_out, fileno(stdout));
+    dup2(save_err, fileno(stderr));
+
+    close(save_out);
+    close(save_err);
+
+    return 0;
+}
 
 
 #define BUF_SIZE 1024
-
-int my_system(const char *command) {
-    sigset_t blockMask, origMask;
-    struct sigaction saIgnore, saOrigQuit, saOrigInt, saDefault;
-    pid_t childPid;
-    int status, savedErrno;
-
-    if (command == NULL)                /* Is a shell available? */
-        return my_system(":") == 0;
-
-    /* The parent process (the caller of system()) blocks SIGCHLD
-       and ignore SIGINT and SIGQUIT while the child is executing.
-       We must change the signal settings prior to forking, to avoid
-       possible race conditions. This means that we must undo the
-       effects of the following in the child after fork(). */
-
-    sigemptyset(&blockMask);            /* Block SIGCHLD */
-    sigaddset(&blockMask, SIGCHLD);
-    sigprocmask(SIG_BLOCK, &blockMask, &origMask);
-
-    saIgnore.sa_handler = SIG_IGN;      /* Ignore SIGINT and SIGQUIT */
-    saIgnore.sa_flags = 0;
-    sigemptyset(&saIgnore.sa_mask);
-    sigaction(SIGINT, &saIgnore, &saOrigInt);
-    sigaction(SIGQUIT, &saIgnore, &saOrigQuit);
-
-    switch (childPid = fork()) {
-    case -1: /* fork() failed */
-        status = -1;
-        break;          /* Carry on to reset signal attributes */
-
-    case 0: /* Child: exec command */
-
-        /* We ignore possible error returns because the only specified error
-           is for a failed exec(), and because errors in these calls can't
-           affect the caller of system() (which is a separate process) */
-
-        saDefault.sa_handler = SIG_DFL;
-        saDefault.sa_flags = 0;
-        sigemptyset(&saDefault.sa_mask);
-
-        if (saOrigInt.sa_handler != SIG_IGN)
-            sigaction(SIGINT, &saDefault, NULL);
-        if (saOrigQuit.sa_handler != SIG_IGN)
-            sigaction(SIGQUIT, &saDefault, NULL);
-
-        sigprocmask(SIG_SETMASK, &origMask, NULL);
-
-        execl("/bin/sh", "sh", "-c", command, (char *) NULL);
-        _exit(127);                     /* We could not exec the shell */
-
-    default: /* Parent: wait for our child to terminate */
-
-        /* We must use waitpid() for this task; using wait() could inadvertently
-           collect the status of one of the caller's other children */
-
-        while (waitpid(childPid, &status, 0) == -1) {
-            if (errno != EINTR) {       /* Error other than EINTR */
-                status = -1;
-                break;                  /* So exit loop */
-            }
-        }
-        break;
-    }
-
-    /* Unblock SIGCHLD, restore dispositions of SIGINT and SIGQUIT */
-
-    savedErrno = errno;                 /* The following may change 'errno' */
-
-    sigprocmask(SIG_SETMASK, &origMask, NULL);
-    sigaction(SIGINT, &saOrigInt, NULL);
-    sigaction(SIGQUIT, &saOrigQuit, NULL);
-
-    errno = savedErrno;
-
-    return status;
-}
 
 ssize_t readline(int fildes, void *buf, size_t nbyte) {
     ssize_t nb = 0;
@@ -137,8 +152,6 @@ char* comando(char* s) {
   	return aux;
 }
 
-//int executa(char* comando[]);
-
 void filtra(char* s) {
   int i = 0;
   while(s[i] != '\0') {
@@ -149,19 +162,27 @@ void filtra(char* s) {
 
 // usar Lista Ligada de comandos
 int main(int argc, char* argv[]) {
-	int fd = open(argv[1], O_RDWR);
+	int fd[2];
+  
+  int fd_1 = open(argv[1], O_RDWR);
+  if (-1 == fd_1) { perror("opening argv[1]"); return 254; }
+
+  int out = open("cout.log", O_RDWR | O_CREAT | O_APPEND, 0600);
+  if (-1 == out) { perror("opening cout.log"); return 255; }
+
 	char buf[BUF_SIZE] = "";
 	int nl = 1;
 	char* result[3]; // tem que ser lista ligada de char*
 	int i = 0;
   char cmd[100];
-  //int fd_aux = open("aux.txt", O_CREAT | O_WRONLY);
-	
+  
 	while(1) {
-		size_t n = readline(fd, buf,sizeof(buf));
+		size_t n = readline(fd_1, buf,sizeof(buf));
 		if (n <= 0) break;
-    write(1, buf, n);
-		if (buf[0] == '$') {
+    //write(1, buf, n);
+		write(out, buf, n);
+    
+    if (buf[0] == '$') {
       result[i] = strdup(comando(buf));
       for(int z = 0; z < strlen(result[i]); z++) {
         if(result[i][z] == '\n') result[i][z] = ' ';
@@ -169,75 +190,24 @@ int main(int argc, char* argv[]) {
 			i++;
 
       for (int j = 0; j < i; j++) {
-        //printf("-> %s <- ",result[j] );
         if (j == 0) strcpy(cmd, result[j]);
         else {
           strcat(cmd, " | "); 
           strcat(cmd, result[j]); 
         }
       }
-      
-      //printf("\n COMANDO: %s\n", cmd);
-      //printf("%d\n",i);
-      write(1, ">>>\n", 4);
-      
-      pid_t childPid;
-      if ((childPid = fork()) == 0) {
-        //close(fd);
-        //dup2(1, fd_aux);
-        //close(fd_aux);
-        execl("/bin/sh", "sh", "-c", cmd, (char *) NULL);
-        _exit(1);
+      write(out, ">>>\n", 4);
+      pid_t pid;
+      if ((pid = fork()) == 0) {
+        int x = my_system(cmd);
+        write(out, "<<<\n", 4);
       }
-
-      int status, savedErrno;
-
-      while (waitpid(childPid, &status, 0) == -1) {
-            if (errno != EINTR) {       /* Error other than EINTR */
-                status = -1;
-                break;                  /* So exit loop */
-            }
-        }
-        write(1, "<<<\n", 4);
+      waitpid(pid, NULL, 0);        
 		}
 		strcpy(buf,"                     \0");
-
-      
 	}
-
-	close(fd);
-	//execlp("./encadeia", result[0], result[1], result[2]);
-	/*printf("0 -> %s\n",result[0] );
-	printf("1 -> %s\n",result[1] );
-	printf("2 -> %s\n",result[2] );*/
-	//execlp("./encadeia", "./encadeia","ls", "sort", "wc", NULL);
-	/*char* cmds = malloc (strlen(result[0]) + strlen(result[1]) + strlen(result[2]) + 8);
-	strcpy(cmds, result[0]);
-	strcat(cmds, " | ");
-	strcat(cmds, result[1]);
-	strcat(cmds, " | ");
-	strcat(cmds, result[2]);
-	for(int i = 0; i < strlen(cmds); i++) {
-		if(cmds[i] == '\n') cmds[i] = ' ';
-	}
-	printf("%s\n",cmds );
-	//my_system(cmds);
-  pid_t childPid;
-  if ((childPid = fork()) == 0) {
-    execl("/bin/sh", "sh", "-c", cmds, (char *) NULL);
-    _exit(1);
-  }
-
-  int status, savedErrno;
-
-  while (waitpid(childPid, &status, 0) == -1) {
-            if (errno != EINTR) {       
-                status = -1;
-                break;                  
-            }
-        }
-*/
-	
+	close(fd_1);
+  	close(out);
 	
 	return 0;
 }
