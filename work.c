@@ -10,9 +10,6 @@
 #include <errno.h>
 #include <signal.h>
 
-// awk -v data="$(<a.txt)" '/>>>/ {f=1} /<<</ && f {print data; f=0}1' teste3.txt > file.txt
-
-
 /*
 
 The exec() functions return only if an error has occurred. 
@@ -24,6 +21,12 @@ EXEMPLO: execvp("ls", ["ls", "-la", (char*) NULL]);
 
 */
 
+/* 
+  Função que encadeia os comandos dados no input usando pipes
+  Input é do tipo "cat | wc -l"
+  Contéudo do output é escrito no cout.log
+  Conteúdo de erro no cerr.log
+*/
 int my_system(char* cmd) {
   int c = 0,i;
   int fd[2];
@@ -45,7 +48,7 @@ int my_system(char* cmd) {
       for(i = 0; i < c-1 ; i++) {
     
         pipe(fd); // cria um pipe com o par fd
-        char* ar[5];
+        char* ar[10];
         int z = 0;
         pch = strtok (result[i]," ");
         while (pch != NULL){
@@ -54,7 +57,7 @@ int my_system(char* cmd) {
           pch = strtok (NULL, " ");
         }
         
-        while(z < 3) {
+        while(z < 10) {
           ar[z] = (char*) 0;
           z++;
         }
@@ -71,7 +74,7 @@ int my_system(char* cmd) {
         close(fd[1]); // fecha 1
     }
     
-    char* ar[3];
+    char* ar[10];
     ar[0] = (char*) 0;
     ar[1] = (char*) 0;
     ar[2] = (char*) 0;
@@ -83,20 +86,31 @@ int my_system(char* cmd) {
       pch = strtok (NULL, " ");
     }
 
-    // teste
     int out = open("cout.log", O_RDWR | O_CREAT | O_APPEND, 0600);
-    if (-1 == out) { perror("opening cout.log"); return 255; }
+    if (-1 == out) { 
+      perror("opening cout.log"); 
+      return 255; 
+    }
 
     int err = open("cerr.log", O_RDWR|O_CREAT|O_APPEND, 0600);
-    if (-1 == err) { perror("opening cerr.log"); return 255; }
+    if (-1 == err) { 
+      perror("opening cerr.log"); 
+      return 255; 
+    }
 
     int save_out = dup(fileno(stdout));
     int save_err = dup(fileno(stderr));
 
-    if (-1 == dup2(out, fileno(stdout))) { perror("cannot redirect stdout"); return 255; }
-    if (-1 == dup2(err, fileno(stderr))) { perror("cannot redirect stderr"); return 255; }
+    if (-1 == dup2(out, fileno(stdout))) { 
+      perror("cannot redirect stdout"); 
+      return 255; 
+    }
 
-    // teste
+    if (-1 == dup2(err, fileno(stderr))) { 
+      perror("cannot redirect stderr"); 
+      return 255; 
+    }
+
     pid_t pid;
     if ((pid = fork()) == 0) {
       execvp(ar[0], ar); // pai executa o último
@@ -119,6 +133,10 @@ int my_system(char* cmd) {
 
 #define BUF_SIZE 1024
 
+/*
+  Função que lê uma linha de um ficheiro
+  Devolve a quantidade de bytes lidos
+*/
 ssize_t readline(int fildes, void *buf, size_t nbyte) {
     ssize_t nb = 0;
     char* p = buf;
@@ -133,15 +151,18 @@ ssize_t readline(int fildes, void *buf, size_t nbyte) {
     return nb;
 }
 
+/*
+  Função que serve para ler um comando de uma linha do ficheiro
+*/
 char* comando(char* s) {
-	char *aux = malloc(strlen(s)+1);
+  char *aux = malloc(strlen(s)+1);
 	char* pch;
 	int i = 0;
 	pch = strtok (s," ");
 	if(strcmp(pch,"$") == 0 || strcmp(pch,"$|") == 0) {
-  		while (pch != NULL){
+    	while (pch != NULL){
   			if (i == 1) strcpy(aux, pch); 
-  			if (i > 1 && pch[0] == '-') {
+  			if (i > 1 /*&& pch[0] == '-'*/) { // ver este caso
   				strcat(aux, " ");
   				strcat(aux, pch);  			 
         }
@@ -149,39 +170,42 @@ char* comando(char* s) {
     		pch = strtok (NULL, " ");
   		}
   	}
-  	return aux;
+    return aux;
 }
 
-void filtra(char* s) {
-  int i = 0;
-  while(s[i] != '\0') {
-    if(s[i] == '\n') s[i] = ' ';
-    i++;
-  }
-}
+// CASOS DE EXEC -1 E DUP2 -1 !!!!!!!!!!!!!
 
-// usar Lista Ligada de comandos
 int main(int argc, char* argv[]) {
 	int fd[2];
   
   int fd_1 = open(argv[1], O_RDWR);
-  if (-1 == fd_1) { perror("opening argv[1]"); return 254; }
+  if (-1 == fd_1) { 
+    perror("opening argv[1]"); 
+    return 254; 
+  }
 
   int out = open("cout.log", O_RDWR | O_CREAT | O_APPEND, 0600);
-  if (-1 == out) { perror("opening cout.log"); return 255; }
+  if (-1 == out) { 
+    perror("opening cout.log"); 
+    return 255; 
+  }
 
 	char buf[BUF_SIZE] = "";
-	int nl = 1;
-	char* result[3]; // tem que ser lista ligada de char*
+  int nl = 1;
+	char* result[10]; 
+
 	int i = 0;
   char cmd[100];
-  
+ 
 	while(1) {
 		size_t n = readline(fd_1, buf,sizeof(buf));
 		if (n <= 0) break;
-    //write(1, buf, n);
-		write(out, buf, n);
     
+    if (buf[0] == '>' && buf[1] == '>' && buf[2] == '>') nl = 0;
+    if (buf[0] == '<' && buf[1] == '<' && buf[2] == '<') {nl = 1; continue;}    
+    if (nl == 0) continue;
+    else {
+    write(out, buf, n);
     if (buf[0] == '$') {
       result[i] = strdup(comando(buf));
       for(int z = 0; z < strlen(result[i]); z++) {
@@ -204,10 +228,13 @@ int main(int argc, char* argv[]) {
       }
       waitpid(pid, NULL, 0);        
 		}
+  }
 		strcpy(buf,"                     \0");
 	}
 	close(fd_1);
-  	close(out);
-	
+  close(out);
+
+  // copiar ficheiro para o input
+  	
 	return 0;
 }
