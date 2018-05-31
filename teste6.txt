@@ -1,0 +1,5 @@
+$ pwd
+Este comando vai dar erro:
+$ ls -33
+Este da a diretoria:
+$ pwd

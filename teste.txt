@@ -1,0 +1,40 @@
+Este comando lista os ficheiros:
+$ ls -l
+>>>
+total 96
+-rwxr-xr-x  1 JoaoPimentel  staff  14084 29 Mai 22:25 a.out
+-rw-------  1 JoaoPimentel  staff      0 29 Mai 22:29 cerr.log
+-rw-------  1 JoaoPimentel  staff     45 29 Mai 22:29 cout.log
+-rw-r--r--@ 1 JoaoPimentel  staff   2105 29 Mai 21:16 teste.txt
+-rw-r--r--@ 1 JoaoPimentel  staff   1019 29 Mai 22:03 teste2.txt
+-rw-r--r--@ 1 JoaoPimentel  staff   1965 29 Mai 22:03 teste3.txt
+-rw-r--r--@ 1 JoaoPimentel  staff   1680 29 Mai 22:25 teste4.txt
+-rw-r--r--@ 1 JoaoPimentel  staff   1020 29 Mai 22:27 teste5.txt
+-rw-r--r--@ 1 JoaoPimentel  staff   8454 29 Mai 22:25 work.c
+<<<
+Agora podemos ordenar estes ficheiros:
+$| sort
+>>>
+-rw-------  1 JoaoPimentel  staff      0 29 Mai 22:29 cerr.log
+-rw-------  1 JoaoPimentel  staff    680 29 Mai 22:29 cout.log
+-rw-r--r--@ 1 JoaoPimentel  staff   1019 29 Mai 22:03 teste2.txt
+-rw-r--r--@ 1 JoaoPimentel  staff   1020 29 Mai 22:27 teste5.txt
+-rw-r--r--@ 1 JoaoPimentel  staff   1680 29 Mai 22:25 teste4.txt
+-rw-r--r--@ 1 JoaoPimentel  staff   1965 29 Mai 22:03 teste3.txt
+-rw-r--r--@ 1 JoaoPimentel  staff   2105 29 Mai 21:16 teste.txt
+-rw-r--r--@ 1 JoaoPimentel  staff   8454 29 Mai 22:25 work.c
+-rwxr-xr-x  1 JoaoPimentel  staff  14084 29 Mai 22:25 a.out
+total 96
+<<<
+Escolher os três primeiros:
+$| head -3
+>>>
+-rw-------  1 JoaoPimentel  staff      0 29 Mai 22:29 cerr.log
+-rw-------  1 JoaoPimentel  staff   1308 29 Mai 22:29 cout.log
+-rw-r--r--@ 1 JoaoPimentel  staff   1019 29 Mai 22:03 teste2.txt
+<<<
+E escolher o último:
+$| tail -1
+>>>
+-rw-r--r--@ 1 JoaoPimentel  staff   1019 29 Mai 22:03 teste2.txt
+<<<

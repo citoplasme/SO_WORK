@@ -1,0 +1,46 @@
+Este comando lista os ficheiros:
+$ ls -la
+>>>
+total 112
+drwxr-xr-x  12 JoaoPimentel  staff    384 29 Mai 22:30 .
+drwxr-xr-x   9 JoaoPimentel  staff    288 14 Mai 15:49 ..
+-rw-r--r--@  1 JoaoPimentel  staff   6148 29 Mai 22:02 .DS_Store
+-rwxr-xr-x   1 JoaoPimentel  staff  14084 29 Mai 22:25 a.out
+-rw-------   1 JoaoPimentel  staff      0 29 Mai 22:30 cerr.log
+-rw-------   1 JoaoPimentel  staff     46 29 Mai 22:30 cout.log
+-rw-r--r--@  1 JoaoPimentel  staff   1609 29 Mai 22:29 teste.txt
+-rw-r--r--@  1 JoaoPimentel  staff   1014 29 Mai 22:29 teste2.txt
+-rw-r--r--@  1 JoaoPimentel  staff   1965 29 Mai 22:03 teste3.txt
+-rw-r--r--@  1 JoaoPimentel  staff   1680 29 Mai 22:25 teste4.txt
+-rw-r--r--@  1 JoaoPimentel  staff   1020 29 Mai 22:27 teste5.txt
+-rw-r--r--@  1 JoaoPimentel  staff   8454 29 Mai 22:25 work.c
+<<<
+Agora podemos ordenar estes ficheiros:
+$| sort
+>>>
+-rw-------   1 JoaoPimentel  staff      0 29 Mai 22:30 cerr.log
+-rw-------   1 JoaoPimentel  staff    871 29 Mai 22:30 cout.log
+-rw-r--r--@  1 JoaoPimentel  staff   1014 29 Mai 22:29 teste2.txt
+-rw-r--r--@  1 JoaoPimentel  staff   1020 29 Mai 22:27 teste5.txt
+-rw-r--r--@  1 JoaoPimentel  staff   1609 29 Mai 22:29 teste.txt
+-rw-r--r--@  1 JoaoPimentel  staff   1680 29 Mai 22:25 teste4.txt
+-rw-r--r--@  1 JoaoPimentel  staff   1965 29 Mai 22:03 teste3.txt
+-rw-r--r--@  1 JoaoPimentel  staff   6148 29 Mai 22:02 .DS_Store
+-rw-r--r--@  1 JoaoPimentel  staff   8454 29 Mai 22:25 work.c
+-rwxr-xr-x   1 JoaoPimentel  staff  14084 29 Mai 22:25 a.out
+drwxr-xr-x   9 JoaoPimentel  staff    288 14 Mai 15:49 ..
+drwxr-xr-x  12 JoaoPimentel  staff    384 29 Mai 22:30 .
+total 112
+<<<
+E escolher os tres primeiros:
+$| head -3
+>>>
+-rw-------   1 JoaoPimentel  staff      0 29 Mai 22:30 cerr.log
+-rw-------   1 JoaoPimentel  staff   1690 29 Mai 22:30 cout.log
+-rw-r--r--@  1 JoaoPimentel  staff   1014 29 Mai 22:29 teste2.txt
+<<<
+E ver a diretoria:
+$ pwd
+>>>
+/Users/JoaoPimentel/desktop/Trabalho_SO/src
+<<<
