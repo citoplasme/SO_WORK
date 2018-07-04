@@ -1,5 +1,5 @@
 # All depends on write, which depends on work, which depends on work.c
-all:	write
+all:	compile
 
 # Command to compile
 compile:	work.c
